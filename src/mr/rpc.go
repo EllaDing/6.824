@@ -32,16 +32,14 @@ type Status string
 
 const (
 	IDLE = "idle"
-	WIP  = "work in progress"
 	DONE = "completed"
 )
 
 type RpcArgs struct {
-	Status       Status
-	Output_files []string
-	Machine_id   uuid.UUID
-	Is_map       bool
-	Task_id      int
+	Status     Status
+	Machine_id uuid.UUID
+	Is_map     bool
+	Task_id    int
 }
 
 type RpcReply struct {

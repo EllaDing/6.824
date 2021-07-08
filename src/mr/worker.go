@@ -102,17 +102,10 @@ func Worker(mapf func(string, string) []KeyValue,
 			break
 		}
 		if len(reply.Input_files) == 0 {
-			// fmt.Println("no task assigned...")
 			time.Sleep(10 * time.Millisecond)
 			continue
 		}
 		if reply.Is_map {
-			// fmt.Println("Start map job...")
-			// fmt.Println(reply)
-			// if rand.Int()%10 == 1 {
-			// 	fmt.Println("sleep for 11 seconds.")
-			// 	time.Sleep(11 * time.Second)
-			// }
 			results := make(map[int][]KeyValue)
 			for _, file := range reply.Input_files {
 				key_vals := get_map_results(file, mapf)
@@ -137,7 +130,6 @@ func Worker(mapf func(string, string) []KeyValue,
 				}
 			}
 		} else {
-			// fmt.Println("Start reduce job...")
 			var kvs []KeyValue
 			for _, file := range reply.Input_files {
 				var data []KeyValue
