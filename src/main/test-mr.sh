@@ -227,6 +227,7 @@ echo '***' Starting crash test.
 ../mrsequential ../../mrapps/nocrash.so ../pg*txt || exit 1
 sort mr-out-0 > mr-correct-crash.txt
 rm -f mr-out*
+rm -f map-*
 
 rm -f mr-done
 (timeout -k 2s 180s ../mrcoordinator ../pg*txt ; touch mr-done ) &

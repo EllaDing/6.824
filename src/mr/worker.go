@@ -6,7 +6,6 @@ import (
 	"hash/fnv"
 	"io/ioutil"
 	"log"
-	"math/rand"
 	"net/rpc"
 	"os"
 	"sort"
@@ -63,7 +62,8 @@ func get_map_results(filename string,
 
 func reduce_and_write(key_vals []KeyValue, filename string,
 	reducef func(string, []string) string) {
-	ofile, _ := os.Create(filename)
+	tmpfile, _ := ioutil.TempFile("", "")
+	defer os.Remove(tmpfile.Name()) // clean up
 	sort.Sort(ByKey(key_vals))
 	i := 0
 	for i < len(key_vals) {
@@ -78,10 +78,10 @@ func reduce_and_write(key_vals []KeyValue, filename string,
 		output := reducef(key_vals[i].Key, values)
 
 		// this is the correct format for each line of Reduce output.
-		fmt.Fprintf(ofile, "%v %v\n", key_vals[i].Key, output)
+		fmt.Fprintf(tmpfile, "%v %v\n", key_vals[i].Key, output)
 		i = j
 	}
-	ofile.Close()
+	os.Rename(tmpfile.Name(), filename)
 }
 
 //
@@ -102,17 +102,17 @@ func Worker(mapf func(string, string) []KeyValue,
 			break
 		}
 		if len(reply.Input_files) == 0 {
-			fmt.Println("no task assigned...")
-			time.Sleep(50 * time.Millisecond)
+			// fmt.Println("no task assigned...")
+			time.Sleep(10 * time.Millisecond)
 			continue
 		}
 		if reply.Is_map {
-			fmt.Println("Start map job...")
-			fmt.Println(reply)
-			if rand.Int()%10 == 1 {
-				fmt.Println("sleep for 11 seconds.")
-				time.Sleep(11 * time.Second)
-			}
+			// fmt.Println("Start map job...")
+			// fmt.Println(reply)
+			// if rand.Int()%10 == 1 {
+			// 	fmt.Println("sleep for 11 seconds.")
+			// 	time.Sleep(11 * time.Second)
+			// }
 			results := make(map[int][]KeyValue)
 			for _, file := range reply.Input_files {
 				key_vals := get_map_results(file, mapf)
@@ -123,22 +123,30 @@ func Worker(mapf func(string, string) []KeyValue,
 			}
 			//  For each partition, write the reduced result to a file.
 			for partition, val := range results {
-				filename := fmt.Sprintf("map-%d-%d.gob", reply.Task_id, partition)
-				file, _ := os.Create(filename)
-				enc := gob.NewEncoder(file)
+				filename := fmt.Sprintf("mr-%d-%d.gob", reply.Task_id, partition)
+				tmpfile, _ := ioutil.TempFile("", "")
+				defer os.Remove(tmpfile.Name()) // clean up
+				enc := gob.NewEncoder(tmpfile)
 				err := enc.Encode(val)
 				if err != nil {
 					log.Fatal("encode:", err)
 				}
-				file.Close()
+				e := os.Rename(tmpfile.Name(), filename)
+				if e != nil {
+					log.Fatal(e)
+				}
 			}
 		} else {
-			fmt.Println("Start reduce job...")
+			// fmt.Println("Start reduce job...")
 			var kvs []KeyValue
 			for _, file := range reply.Input_files {
 				var data []KeyValue
 				dataFile, err := os.Open(file)
 				if err != nil {
+					if os.IsNotExist(err) {
+						// It's normal that the map job doesn't produced results for this specific partition.
+						continue
+					}
 					log.Fatal("decode:", err)
 				}
 
@@ -149,7 +157,6 @@ func Worker(mapf func(string, string) []KeyValue,
 				}
 				dataFile.Close()
 			}
-			fmt.Printf("len(kvs): %d in reduce job\n", len(kvs))
 			ofile_reduce := fmt.Sprintf("mr-out-%d", reply.Task_id)
 			reduce_and_write(kvs, ofile_reduce, reducef)
 		}
@@ -175,7 +182,6 @@ func CallCoordinator(id uuid.UUID, status Status, task_id int, is_map bool) (Rpc
 
 	// send the RPC request, wait for the reply.
 	success := call("Coordinator.AssignTask", &args, &reply)
-	fmt.Printf("success: %v\n", success)
 	return reply, success
 }
 

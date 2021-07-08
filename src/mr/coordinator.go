@@ -61,7 +61,7 @@ func (c *Coordinator) AssignTask(args *RpcArgs, reply *RpcReply) error {
 		return nil
 	}
 	if args.Status == DONE {
-		fmt.Println("worker is done")
+		// fmt.Println("worker is done")
 		if args.Is_map {
 			status, exist := c.InProgress_map[args.Task_id]
 			if exist && status.Machine_id == args.Machine_id {
@@ -74,7 +74,7 @@ func (c *Coordinator) AssignTask(args *RpcArgs, reply *RpcReply) error {
 							Task_id: i,
 						}
 						for j := 0; j < c.Input_file_num; j++ {
-							reduce_status.Input_files = append(reduce_status.Input_files, fmt.Sprintf("map-%d-%d.gob", j, i))
+							reduce_status.Input_files = append(reduce_status.Input_files, fmt.Sprintf("mr-%d-%d.gob", j, i))
 						}
 						c.Idle_reduce_pool <- reduce_status
 					}
@@ -87,18 +87,18 @@ func (c *Coordinator) AssignTask(args *RpcArgs, reply *RpcReply) error {
 				delete(c.InProgress_reduce, args.Task_id)
 			}
 		}
-		fmt.Printf("current status:\n idle_map_task:%d \n idle_reduce_task:%d \n in_progress_map_task:%d \n in_progress_reduce_task:%d \n done_map_task:%d \n done_reduce_task:%d\n",
-			len(c.Idle_map_pool),
-			len(c.Idle_reduce_pool),
-			len(c.InProgress_map),
-			len(c.InProgress_reduce),
-			len(c.Finished_map),
-			len(c.Finished_reduce))
+		// fmt.Printf("current status:\n idle_map_task:%d \n idle_reduce_task:%d \n in_progress_map_task:%d \n in_progress_reduce_task:%d \n done_map_task:%d \n done_reduce_task:%d\n",
+		// 	len(c.Idle_map_pool),
+		// 	len(c.Idle_reduce_pool),
+		// 	len(c.InProgress_map),
+		// 	len(c.InProgress_reduce),
+		// 	len(c.Finished_map),
+		// 	len(c.Finished_reduce))
 	}
 	c.lock.Unlock()
 	select {
 	case status := <-c.Idle_map_pool:
-		fmt.Println("assign map task")
+		// fmt.Println("assign map task")
 		reply.Input_files = append(reply.Input_files, status.Input_file)
 		reply.Is_map = true
 		reply.Task_id = status.Task_id
@@ -112,7 +112,7 @@ func (c *Coordinator) AssignTask(args *RpcArgs, reply *RpcReply) error {
 		}
 		c.lock.Unlock()
 	case status := <-c.Idle_reduce_pool:
-		fmt.Println("assign reduce task")
+		// fmt.Println("assign reduce task")
 		reply.Input_files = status.Input_files
 		reply.Is_map = false
 		reply.Task_id = status.Task_id
@@ -155,50 +155,51 @@ func (c *Coordinator) Done() bool {
 	if len(c.Finished_reduce) == c.Partition {
 		ret = true
 	}
+
 	c.lock.Unlock()
 	return ret
 }
 
 func (c *Coordinator) scan() {
 	for {
-		time.Sleep(time.Second)
+		time.Sleep(10 * time.Millisecond)
 		c.lock.Lock()
 		for id, status := range c.InProgress_map {
 			curr := time.Now()
 			diff := curr.Sub(status.Timestamp)
 			if diff >= 10*time.Second {
-				fmt.Println("detected an obsolete worker")
+				// fmt.Println("detected an obsolete worker")
 				c.Idle_map_pool <- MapStatus{
 					Task_id:    id,
 					Input_file: c.InProgress_map[id].Input_file,
 				}
 				delete(c.InProgress_map, id)
-				fmt.Printf("current status:\n idle_map_task:%d \n idle_reduce_task:%d \n in_progress_map_task:%d \n in_progress_reduce_task:%d \n done_map_task:%d \n done_reduce_task:%d\n",
-					len(c.Idle_map_pool),
-					len(c.Idle_reduce_pool),
-					len(c.InProgress_map),
-					len(c.InProgress_reduce),
-					len(c.Finished_map),
-					len(c.Finished_reduce))
+				// fmt.Printf("current status:\n idle_map_task:%d \n idle_reduce_task:%d \n in_progress_map_task:%d \n in_progress_reduce_task:%d \n done_map_task:%d \n done_reduce_task:%d\n",
+				// 	len(c.Idle_map_pool),
+				// 	len(c.Idle_reduce_pool),
+				// 	len(c.InProgress_map),
+				// 	len(c.InProgress_reduce),
+				// 	len(c.Finished_map),
+				// 	len(c.Finished_reduce))
 			}
 		}
 		for id, status := range c.InProgress_reduce {
 			curr := time.Now()
 			diff := curr.Sub(status.Timestamp)
 			if diff >= 10*time.Second {
-				fmt.Println("detected an obsolete worker")
+				// fmt.Println("detected an obsolete worker")
 				c.Idle_reduce_pool <- ReduceStatus{
 					Task_id:     id,
 					Input_files: c.InProgress_reduce[id].Input_files,
 				}
 				delete(c.InProgress_reduce, id)
-				fmt.Printf("current status:\n idle_map_task:%d \n idle_reduce_task:%d \n in_progress_map_task:%d \n in_progress_reduce_task:%d \n done_map_task:%d \n done_reduce_task:%d\n",
-					len(c.Idle_map_pool),
-					len(c.Idle_reduce_pool),
-					len(c.InProgress_map),
-					len(c.InProgress_reduce),
-					len(c.Finished_map),
-					len(c.Finished_reduce))
+				// fmt.Printf("current status:\n idle_map_task:%d \n idle_reduce_task:%d \n in_progress_map_task:%d \n in_progress_reduce_task:%d \n done_map_task:%d \n done_reduce_task:%d\n",
+				// 	len(c.Idle_map_pool),
+				// 	len(c.Idle_reduce_pool),
+				// 	len(c.InProgress_map),
+				// 	len(c.InProgress_reduce),
+				// 	len(c.Finished_map),
+				// 	len(c.Finished_reduce))
 			}
 		}
 		c.lock.Unlock()
