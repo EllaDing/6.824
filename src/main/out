@@ -1,0 +1,22 @@
+*** Starting wc test.
+--- wc output is not the same as mr-correct-wc.txt
+--- wc test: FAIL
+*** Starting indexer test.
+--- indexer output is not the same as mr-correct-indexer.txt
+--- indexer test: FAIL
+*** Starting map parallelism test.
+--- saw 0 workers rather than 2
+--- map parallelism test: FAIL
+--- map workers did not run in parallel
+--- map parallelism test: FAIL
+*** Starting reduce parallelism test.
+--- too few parallel reduces.
+--- reduce parallelism test: FAIL
+*** Starting job count test.
+--- job count test: PASS
+*** Starting early exit test.
+--- early exit test: PASS
+*** Starting crash test.
+--- crash output is not the same as mr-correct-crash.txt
+--- crash test: FAIL
+*** FAILED SOME TESTS
